@@ -180,11 +180,11 @@ int Init ( void )
 
 	// Load Textures
 	glGenTextures(TEXTURE_COUNT, GtextureID);
-	loadTexture("../media/obama.bmp", GtextureID[0]);
+	loadTexture("../media/graphics-card.bmp", GtextureID[0]);
 	//load(Texture("../media/DarkRainbow.bmp", GtextureID[1]);
 
 	vertexShader = LoadShaderFromFile(GL_VERTEX_SHADER, "../vertexShader0.vert" );
-	fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../fragmentShader1.frag" );
+	fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../GaussianBlurShader.frag" );
 
 	// Create the program object
 	programObject = glCreateProgram ( );
@@ -245,7 +245,7 @@ void Draw(void)
 	// Set the sampler2D varying variable to the first texture unit(index 0)
 	glUniform1i(glGetUniformLocation(GprogramID, "sampler2D"), 0);
 
-	factor0 += 1.0f;
+	factor0 += 0.1f;
 
 	GLint factor0Loc = glGetUniformLocation(GprogramID, "Factor0");
 
