@@ -13,16 +13,18 @@
 #include <stdio.h>
 #include <string>
 #include <fstream> 
-#include <fmod.hpp>
-#include <fmod_errors.h>
-#include "bitmap.h"
+
 #include "angle_util/Matrix.h"
 #include "angle_util/geometry_utils.h"
+
+#include "bitmap.h"
+#include <fmod.hpp>
+#include <fmod_errors.h>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-#define TEXTURE_COUNT 2
+#define TEXTURE_COUNT 10
 
 #define SPECTRUM_SIZE 128
 
@@ -49,49 +51,6 @@ void ERRCHECK(FMOD_RESULT result)
 	{
 		printf("FMOD ERROR! (%d) %s\n", result, FMOD_ErrorString(result));
 	}
-}
-
-void InitFMOD()
-{
-	FMOD_RESULT result;
-	unsigned int version;
-
-	result = FMOD::System_Create(&m_fmodSystem);
-
-	result = m_fmodSystem->getVersion(&version);
-	ERRCHECK(result);
-
-	if (version < FMOD_VERSION)
-	{
-		printf("FMOD Error! You are using an old version of FMOD.", version, FMOD_VERSION);
-	}
-
-	//initialize fmod system
-	result = m_fmodSystem->init(32, FMOD_INIT_NORMAL, 0);
-	ERRCHECK(result);
-
-	//load and set up music
-	result = m_fmodSystem->createStream("../media/HotlineMiami.mp3", FMOD_SOFTWARE, 0, &m_music);
-	ERRCHECK(result);
-
-	//play the loaded mp3 music
-	result = m_fmodSystem->playSound(FMOD_CHANNEL_FREE, m_music, false, &m_musicChannel);
-	ERRCHECK(result);
-}
-
-void UpdateFMOD()
-{
-	m_fmodSystem->update();
-
-	//set spectrum for left and right stereo channel
-	m_musicChannel->getSpectrum(m_spectrumLeft, SPECTRUM_SIZE, 0, FMOD_DSP_FFT_WINDOW_RECT);
-
-	m_musicChannel->getSpectrum(m_spectrumRight, SPECTRUM_SIZE, 0, FMOD_DSP_FFT_WINDOW_RECT);
-
-	spectrumAverage = (m_spectrumLeft[0] + m_spectrumRight[0]) / 2.0f;
-
-	//point the first audio spectrum for both left and right channels
-	std::cout << m_spectrumLeft[0] << ", " << m_spectrumRight[0] << std::endl;
 }
 
 static void error_callback(int error, const char* description)
@@ -171,8 +130,50 @@ void loadTexture(const char* path, GLuint textureID)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.GetWidth(), bitmap.GetHeight(), 0,
-	GL_RGBA, GL_UNSIGNED_BYTE, bitmap.GetBits());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.GetWidth(), bitmap.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap.GetBits());
+}
+
+void InitFMOD()
+{
+	FMOD_RESULT result;
+	unsigned int version;
+
+	result = FMOD::System_Create(&m_fmodSystem);
+
+	result = m_fmodSystem->getVersion(&version);
+	ERRCHECK(result);
+
+	if (version < FMOD_VERSION)
+	{
+		printf("FMOD Error! You are using an old version of FMOD.", version, FMOD_VERSION);
+	}
+
+	//initialize fmod system
+	result = m_fmodSystem->init(32, FMOD_INIT_NORMAL, 0);
+	ERRCHECK(result);
+
+	//load and set up music
+	result = m_fmodSystem->createStream("../media/HotlineMiami.mp3", FMOD_SOFTWARE, 0, &m_music);
+	ERRCHECK(result);
+
+	//play the loaded mp3 music
+	result = m_fmodSystem->playSound(FMOD_CHANNEL_FREE, m_music, false, &m_musicChannel);
+	ERRCHECK(result);
+}
+
+void UpdateFMOD()
+{
+	m_fmodSystem->update();
+
+	//set spectrum for left and right stereo channel
+	m_musicChannel->getSpectrum(m_spectrumLeft, SPECTRUM_SIZE, 0, FMOD_DSP_FFT_WINDOW_RECT);
+
+	m_musicChannel->getSpectrum(m_spectrumRight, SPECTRUM_SIZE, 0, FMOD_DSP_FFT_WINDOW_RECT);
+
+	spectrumAverage = (m_spectrumLeft[0] + m_spectrumRight[0]) / 2.0f;
+
+	//point the first audio spectrum for both left and right channels
+	std::cout << m_spectrumLeft[0] << ", " << m_spectrumRight[0] << std::endl;
 }
 
 int Init ( void )
@@ -187,8 +188,11 @@ int Init ( void )
 	loadTexture("../media/graphics-card.bmp", GtextureID[0]);
 	//load(Texture("../media/DarkRainbow.bmp", GtextureID[1]);
 
+	// Initialize FMOD
+	//InitFMOD();
+
 	vertexShader = LoadShaderFromFile(GL_VERTEX_SHADER, "../vertexShader0.vert");
-	fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../PosterizeShader.frag");
+	fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../GaussianBlurShader0.frag");
 
 	// Create the program object
 	programObject = glCreateProgram ( );
@@ -234,11 +238,12 @@ int Init ( void )
 	GprogramID = programObject;
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	//initialize matrices
+	//Initialize matrices
 	gPerspectiveMatrix = Matrix4::perspective(60.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.5f, 30.0f);
 	gViewMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, -2.0f));
 
@@ -247,13 +252,13 @@ int Init ( void )
 
 void UpdateCamera(void)
 {
-	static float pitch = 1.0f;
 	static float yaw = 1.0f;
+	static float pitch = 1.0f;
 	static float distance = 1.5f;
 
-	if (glfwGetKey(window, 'A')) 
-	{ 
-		pitch -= 1.0f; 
+	if (glfwGetKey(window, 'A'))
+	{
+		pitch -= 1.0f;
 	}
 	if (glfwGetKey(window, 'D'))
 	{
@@ -280,9 +285,12 @@ void UpdateCamera(void)
 		distance += 0.05f;
 	}
 
-	gViewMatrix =	Matrix4::translate(Vector3(0.0f, 0.0f, -distance)) *
-					Matrix4::rotate(yaw, Vector3(1.0f, 0.0f, 0.0f)) *
-					Matrix4::rotate(pitch, Vector3(0.0f, 1.0f, 0.0f));
+	gViewMatrix = Matrix4::translate
+	(
+		Vector3(0.0f, 0.0f, -distance)) *
+		Matrix4::rotate(yaw, Vector3(1.0f, 0.0f, 0.0f)) *
+		Matrix4::rotate(pitch, Vector3(0.0f, 1.0f, 0.0f)
+		);
 }
 
 void DrawSquare(void)
@@ -320,7 +328,7 @@ void DrawSquare(void)
 		1.0f, 0.0f,
 	};
 
-	glBindTexture(GL_TEXTURE_2D, GtextureID[3]);
+	glBindTexture(GL_TEXTURE_2D, GtextureID[5]);
 
 	// Use the program object
 	glUseProgram(GprogramID);
@@ -352,7 +360,7 @@ void Draw(void)
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	// Clear the colour buffer
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//UpdateFMOD();
 	UpdateCamera();
@@ -371,19 +379,27 @@ void Draw(void)
 	static float modelRotation = 0.0f;
 
 	Matrix4 modelMatrix, mvpMatrix;
-	modelMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, 0.0f)) * Matrix4::rotate(-modelRotation, Vector3(0.0f, 1.0f, 0.0f));
+
+	modelMatrix = Matrix4::translate
+	(
+		Vector3(0.0f, 0.0f, 0.0f)) *
+		Matrix4::rotate(-modelRotation, Vector3(0.0f, 1.0f, 0.0f)
+		);
+
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
-	
-	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	GLint mvpMatrixLoc = glGetUniformLocation(GprogramID, "uMvpMatrix");
+
+	if (mvpMatrixLoc != -1)
+	{
+		glUniformMatrix4fv(mvpMatrixLoc, 1, GL_FALSE, mvpMatrix.data);
+	}
+
 	DrawSquare();
 }
 
 int main(void)
 {
 	glfwSetErrorCallback(error_callback);
-
-	// Initialize FMOD
-	//InitFMOD();
 
 	// Initialize GLFW library
 	if (!glfwInit())
@@ -410,6 +426,7 @@ int main(void)
 	}
 
 	glfwMakeContextCurrent(window);
+	
 	Init();
 
 	// Repeat Update Function

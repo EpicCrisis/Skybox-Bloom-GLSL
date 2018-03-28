@@ -1,4 +1,5 @@
 precision mediump float;
+varying vec4 fPosition;
 varying vec4 fColor;
 varying vec2 fTexCoord;
 
@@ -9,7 +10,7 @@ const vec2 resolution = vec2(800.0, 600.0);
 const vec2 uvKernel = 1.0 / resolution;
 
 const float jump = 1.0;
-const float pointRange = 30.0;
+const float pointRange = 10.0;
 const float pointRangeSqr = pointRange * pointRange;
 
 float normpdf(in float x, in float sigma)
