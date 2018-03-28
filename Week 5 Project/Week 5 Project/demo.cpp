@@ -290,7 +290,7 @@ void UpdateCamera(void)
 		Vector3(0.0f, 0.0f, -distance)) *
 		Matrix4::rotate(yaw, Vector3(1.0f, 0.0f, 0.0f)) *
 		Matrix4::rotate(pitch, Vector3(0.0f, 1.0f, 0.0f)
-		);
+	);
 }
 
 void DrawSquare(void)
@@ -377,16 +377,14 @@ void Draw(void)
 	}
 
 	static float modelRotation = 0.0f;
-
-	Matrix4 modelMatrix, mvpMatrix;
-
-	modelMatrix = Matrix4::translate
+	
+	Matrix4 modelMatrix = Matrix4::translate
 	(
 		Vector3(0.0f, 0.0f, 0.0f)) *
 		Matrix4::rotate(-modelRotation, Vector3(0.0f, 1.0f, 0.0f)
-		);
+	);
 
-	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	Matrix4 mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
 	GLint mvpMatrixLoc = glGetUniformLocation(GprogramID, "uMvpMatrix");
 
 	if (mvpMatrixLoc != -1)

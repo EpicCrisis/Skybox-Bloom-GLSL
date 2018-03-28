@@ -16,5 +16,5 @@ void main()
 	fColor = vColor;     
 	fTexCoord = vTexCoord;
 	
-	gl_Position = uMvpMatrix * vPosition;
+	gl_Position = uMvpMatrix * vPosition; //Do not do vPosition * uMvpMatrix, it's a matrix.
 }
