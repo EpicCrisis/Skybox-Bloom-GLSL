@@ -9,9 +9,7 @@ float uYPixelDistance;
 float uXPixelDistance;
 
 const vec2 resolution = vec2(800.0, 600.0);
-const float resX = 800.0;
-const float resY = 600.0;
-const float jump = 10.0;
+const float jump = 1.0;
 const float pointRange = 10.0;
 
 void main()                                 
@@ -24,8 +22,8 @@ void main()
 	
 	float animScale = pointRange * sin(Factor0) + pointRange;
 	
-	float uYPixelDistance = 1.0/resX;
-	float uXPixelDistance = 1.0/resY;
+	float uXPixelDistance = 1.0/resolution.x;
+	float uYPixelDistance = 1.0/resolution.y;
 	
 	for(float u = -pointRange; u <= pointRange; u += jump)
 	{

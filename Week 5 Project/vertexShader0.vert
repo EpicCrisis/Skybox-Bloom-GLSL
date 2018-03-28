@@ -5,11 +5,13 @@ attribute vec2 vTexCoord;
 varying vec4 fColor;
 varying vec2 fTexCoord;
 
+uniform mat4 uMvpMatrix;
+
 void main()                 
 {             
 	fColor = vColor;     
 	
 	fTexCoord = vTexCoord;
 	
-	gl_Position = vPosition; 
+	gl_Position = uMvpMatrix * vPosition;
 }

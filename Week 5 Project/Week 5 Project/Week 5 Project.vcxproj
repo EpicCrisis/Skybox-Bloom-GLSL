@@ -151,9 +151,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="angle_util\geometry_utils.cpp" />
+    <ClCompile Include="angle_util\Matrix.cpp" />
+    <ClCompile Include="angle_util\Vector.cpp" />
     <ClCompile Include="demo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="angle_util\geometry_utils.h" />
+    <ClInclude Include="angle_util\Matrix.h" />
+    <ClInclude Include="angle_util\Vector.h" />
     <ClInclude Include="bitmap.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

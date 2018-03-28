@@ -15,8 +15,9 @@
 #include <fstream> 
 #include <fmod.hpp>
 #include <fmod_errors.h>
-
 #include "bitmap.h"
+#include "angle_util/Matrix.h"
+#include "angle_util/geometry_utils.h"
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
@@ -38,6 +39,9 @@ float m_spectrumLeft[SPECTRUM_SIZE];
 float m_spectrumRight[SPECTRUM_SIZE];
 
 float spectrumAverage;
+
+Matrix4 gPerspectiveMatrix;
+Matrix4 gViewMatrix;
 
 void ERRCHECK(FMOD_RESULT result)
 {
@@ -183,8 +187,8 @@ int Init ( void )
 	loadTexture("../media/graphics-card.bmp", GtextureID[0]);
 	//load(Texture("../media/DarkRainbow.bmp", GtextureID[1]);
 
-	vertexShader = LoadShaderFromFile(GL_VERTEX_SHADER, "../vertexShader0.vert" );
-	fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../GaussianBlurShader.frag" );
+	vertexShader = LoadShaderFromFile(GL_VERTEX_SHADER, "../vertexShader0.vert");
+	fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../PosterizeShader.frag");
 
 	// Create the program object
 	programObject = glCreateProgram ( );
@@ -229,52 +233,81 @@ int Init ( void )
 	// Store the program object
 	GprogramID = programObject;
 
-	glClearColor ( 0.0f, 0.0f, 0.0f, 0.0f );
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	//initialize matrices
+	gPerspectiveMatrix = Matrix4::perspective(60.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.5f, 30.0f);
+	gViewMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, -2.0f));
+
 	return 1;
 }
 
-// Variables For Music
-float factor0 = 0.0f;
-
-const float PI = 3.142f;
-
-void Draw(void)
+void UpdateCamera(void)
 {
-	//UpdateFMOD();
+	static float pitch = 1.0f;
+	static float yaw = 1.0f;
+	static float distance = 1.5f;
 
-	// Set the sampler2D varying variable to the first texture unit(index 0)
-	glUniform1i(glGetUniformLocation(GprogramID, "sampler2D"), 0);
-
-	factor0 += 0.1f;
-
-	GLint factor0Loc = glGetUniformLocation(GprogramID, "Factor0");
-
-	if (factor0Loc != -1)
+	if (glfwGetKey(window, 'A')) 
+	{ 
+		pitch -= 1.0f; 
+	}
+	if (glfwGetKey(window, 'D'))
 	{
-		glUniform1f(factor0Loc, factor0);
+		pitch += 1.0f;
+	}
+	if (glfwGetKey(window, 'W'))
+	{
+		yaw -= 1.0f;
+	}
+	if (glfwGetKey(window, 'S'))
+	{
+		yaw += 1.0f;
+	}
+	if (glfwGetKey(window, 'Z'))
+	{
+		distance -= 0.05f;
+		if (distance < 1.0f)
+		{
+			distance = 1.0f;
+		}
+	}
+	if (glfwGetKey(window, 'X'))
+	{
+		distance += 0.05f;
 	}
 
+	gViewMatrix =	Matrix4::translate(Vector3(0.0f, 0.0f, -distance)) *
+					Matrix4::rotate(yaw, Vector3(1.0f, 0.0f, 0.0f)) *
+					Matrix4::rotate(pitch, Vector3(0.0f, 1.0f, 0.0f));
+}
+
+void DrawSquare(void)
+{
 	float sizeX = 1.0f;
 	float sizeY = 1.0f;
 
 	GLfloat vVertices[] =
-	{ 
+	{
 		-sizeX,  sizeY, 0.0f,
 		-sizeX, -sizeY, 0.0f,
 		 sizeX, -sizeY, 0.0f,
 		-sizeX,  sizeY, 0.0f,
 		 sizeX,  sizeY, 0.0f,
-		 sizeX, -sizeY, 0.0f, 
+		 sizeX, -sizeY, 0.0f,
 	};
 
 	GLfloat vColors[] =
-	{ 
+	{
 		1.0f, 0.0f, 0.0f, 1.0f,
 		0.0f, 1.0f, 0.0f, 1.0f,
 		0.0f, 0.0f, 1.0f, 1.0f,
 		1.0f, 0.0f, 0.0f, 1.0f,
 		0.0f, 1.0f, 0.0f, 1.0f,
-		0.0f, 0.0f, 1.0f, 1.0f, 
+		0.0f, 0.0f, 1.0f, 1.0f,
 	};
 
 	GLfloat vTexCoord[] =
@@ -287,18 +320,7 @@ void Draw(void)
 		1.0f, 0.0f,
 	};
 
-	/*GLfloat vVertices[] = 
-	{
-		 0.0f,  1.0f, 0.0f,
-		-1.0f, -1.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f
-	};*/
-
-	// Set the viewport
-	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-	// Clear the colour buffer
-	glClear(GL_COLOR_BUFFER_BIT);
+	glBindTexture(GL_TEXTURE_2D, GtextureID[3]);
 
 	// Use the program object
 	glUseProgram(GprogramID);
@@ -319,12 +341,49 @@ void Draw(void)
 	glDisableVertexAttribArray(2);
 }
 
+// Variables For Music
+float factor0 = 0.0f;
+
+const float PI = 3.142f;
+
+void Draw(void)
+{
+	// Set the viewport
+	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+	// Clear the colour buffer
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	//UpdateFMOD();
+	UpdateCamera();
+
+	// Set the sampler2D varying variable to the first texture unit(index 0)
+	glUniform1i(glGetUniformLocation(GprogramID, "sampler2D"), 0);
+
+	factor0 += 0.1f;
+
+	GLint factor0Loc = glGetUniformLocation(GprogramID, "Factor0");
+	if (factor0Loc != -1)
+	{
+		glUniform1f(factor0Loc, factor0);
+	}
+
+	static float modelRotation = 0.0f;
+
+	Matrix4 modelMatrix, mvpMatrix;
+	modelMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, 0.0f)) * Matrix4::rotate(-modelRotation, Vector3(0.0f, 1.0f, 0.0f));
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare();
+}
+
 int main(void)
 {
 	glfwSetErrorCallback(error_callback);
 
 	// Initialize FMOD
-	InitFMOD();
+	//InitFMOD();
 
 	// Initialize GLFW library
 	if (!glfwInit())
@@ -359,6 +418,11 @@ int main(void)
 		Draw();
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+
+		if (glfwGetKey(window, GLFW_KEY_ESCAPE))
+		{
+			break;
+		}
 	}
 
 	glfwDestroyWindow(window);

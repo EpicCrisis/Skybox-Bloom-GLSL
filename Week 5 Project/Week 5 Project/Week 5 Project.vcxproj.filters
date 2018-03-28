@@ -13,15 +13,36 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="angle_util">
+      <UniqueIdentifier>{b2644d92-92e7-47ca-af32-af67f851f42e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="demo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="angle_util\geometry_utils.cpp">
+      <Filter>angle_util</Filter>
+    </ClCompile>
+    <ClCompile Include="angle_util\Matrix.cpp">
+      <Filter>angle_util</Filter>
+    </ClCompile>
+    <ClCompile Include="angle_util\Vector.cpp">
+      <Filter>angle_util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bitmap.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="angle_util\geometry_utils.h">
+      <Filter>angle_util</Filter>
+    </ClInclude>
+    <ClInclude Include="angle_util\Matrix.h">
+      <Filter>angle_util</Filter>
+    </ClInclude>
+    <ClInclude Include="angle_util\Vector.h">
+      <Filter>angle_util</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
