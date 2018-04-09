@@ -227,7 +227,7 @@ int Init ( void )
 	//=========================================================================================
 
 	vertexShader = LoadShaderFromFile(GL_VERTEX_SHADER, "../vertexShader0.vert");
-	fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../GaussianBlurShader3D0.frag");
+	fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../BloomEffectShader0.frag");
 
 	// Create the program object
 	programObject = glCreateProgram ( );
