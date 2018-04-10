@@ -10,14 +10,14 @@ uniform float uTextureH;
 
 float gaussianFunction(float x)
 {
-	float variance = 0.015; //x should be 0-1.0 with this variance
+	float variance = 0.15; //x should be 0-1.0 with this variance
 	float alpha = -(x * x / (2.0 * variance));
 	return exp(alpha);
 }
 
 float gaussianFunction2D(float x, float y)
 {
-	float variance = 0.25; //x and y should be 0-1.0 with this variance
+	float variance = 0.15; //x and y should be 0-1.0 with this variance
 
 	float alpha = -( (x * x + y * y) / (2.0 * variance));
 	return exp(alpha);
@@ -65,7 +65,7 @@ void main()
 			}
 		}
 		gl_FragColor = texColor;
-		if(average <= 0.1)
+		if(average >= 0.8)
 		{
 			gl_FragColor += totalColor / totalWeight * glowIntensity;
 		}
@@ -85,7 +85,7 @@ void main()
 			}
 		}
 		gl_FragColor = texColor;
-		if(average <= 0.1)
+		if(average >= 0.8)
 		{
 			gl_FragColor += (totalColor / totalWeight) * glowIntensity;
 		}
