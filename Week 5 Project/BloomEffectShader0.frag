@@ -3,7 +3,6 @@ varying vec4 fColor;
 varying vec2 fTexCoord;
 
 uniform sampler2D _sampler2d;
-
 uniform int uBlurDirection;
 uniform float uTextureW;
 uniform float uTextureH;
@@ -65,7 +64,7 @@ void main()
 			}
 		}
 		gl_FragColor = texColor;
-		if(average >= 0.8)
+		if(average <= 0.2)
 		{
 			gl_FragColor += totalColor / totalWeight * glowIntensity;
 		}
@@ -85,7 +84,7 @@ void main()
 			}
 		}
 		gl_FragColor = texColor;
-		if(average >= 0.8)
+		if(average <= 0.2)
 		{
 			gl_FragColor += (totalColor / totalWeight) * glowIntensity;
 		}

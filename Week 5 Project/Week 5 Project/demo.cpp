@@ -34,8 +34,10 @@ GLuint GtextureID[TEXTURE_COUNT];
 GLuint Gframebuffer;
 GLuint GdepthRenderbuffer;
 
-GLuint GblurredTexture;
 GLuint GfullscreenTexture;
+GLuint GblurredTexture;
+GLuint GpTexture_0;
+GLuint GpTexture_1;
 
 GLFWwindow* window;
 
@@ -200,6 +202,8 @@ int Init ( void )
 
 	loadTexture("../media/cubes.bmp", GtextureID[6]);
 	loadTexture("../media/DarkRainbow.bmp", GtextureID[7]);
+	loadTexture("../media/roughrock.bmp", GtextureID[8]);
+	loadTexture("../media/graphics-card.bmp", GtextureID[9]);
 
 	// Initialize FMOD
 	//InitFMOD();
@@ -209,7 +213,16 @@ int Init ( void )
 	//Create a new FBO.
 	glGenFramebuffers(1, &Gframebuffer);
 
-	// create a new empty texture for blurring
+	//Create a new empty texture for rendering original scene
+	glGenTextures(1, &GfullscreenTexture);
+	glBindTexture(GL_TEXTURE_2D, GfullscreenTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	//Create a new empty texture for blurring
 	glGenTextures(1, &GblurredTexture);
 	glBindTexture(GL_TEXTURE_2D, GblurredTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
@@ -218,9 +231,18 @@ int Init ( void )
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-	//Create a new empty texture for rendering original scene
-	glGenTextures(1, &GfullscreenTexture);
-	glBindTexture(GL_TEXTURE_2D, GfullscreenTexture);
+	//Create first empty texture to process first pass processing
+	glGenTextures(1, &GpTexture_0);
+	glBindTexture(GL_TEXTURE_2D, GpTexture_0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	//Create second empty texture to process first pass processing
+	glGenTextures(1, &GpTexture_1);
+	glBindTexture(GL_TEXTURE_2D, GpTexture_1);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -234,7 +256,7 @@ int Init ( void )
 	//=========================================================================================
 
 	vertexShader = LoadShaderFromFile(GL_VERTEX_SHADER, "../vertexShader0.vert");
-	fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../BloomEffectShader0.frag");
+	fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../BloomEffectShader2.frag");
 
 	// Create the program object
 	programObject = glCreateProgram ( );
@@ -296,40 +318,55 @@ void UpdateCamera(void)
 {
 	static float yaw = 0.0f;
 	static float pitch = 0.0f;
-	static float distance = 2.5f;
+	static float distanceX = 0.0f;
+	static float distanceY = 0.0f;
+	static float distanceZ = -2.5f;
 
-	if (glfwGetKey(window, 'A'))
+	if (glfwGetKey(window, 'J'))
 	{
 		pitch -= 1.0f;
 	}
-	if (glfwGetKey(window, 'D'))
+	if (glfwGetKey(window, 'L'))
 	{
 		pitch += 1.0f;
 	}
-	if (glfwGetKey(window, 'W'))
+	if (glfwGetKey(window, 'I'))
 	{
 		yaw -= 1.0f;
 	}
-	if (glfwGetKey(window, 'S'))
+	if (glfwGetKey(window, 'K'))
 	{
 		yaw += 1.0f;
 	}
-	if (glfwGetKey(window, 'Z'))
+	if (glfwGetKey(window, 'D'))
 	{
-		distance -= 0.1f;
-		if (distance < 1.0f)
-		{
-			distance = 1.0f;
-		}
+		distanceX -= 0.1f;
+	}
+	if (glfwGetKey(window, 'A'))
+	{
+		distanceX += 0.1f;
 	}
 	if (glfwGetKey(window, 'X'))
 	{
-		distance += 0.1f;
+		distanceY += 0.1f;
+	}
+	if (glfwGetKey(window, 'Z'))
+	{
+		distanceY -= 0.1f;
+	}
+	if (glfwGetKey(window, 'S'))
+	{
+		distanceZ -= 0.1f;
+	}
+	if (glfwGetKey(window, 'W'))
+	{
+		distanceZ += 0.1f;
 	}
 
-	gViewMatrix =	Matrix4::translate(Vector3(0.0f, 0.0f, -distance)) *
-					Matrix4::rotate(yaw, Vector3(1.0f, 0.0f, 0.0f)) *
-					Matrix4::rotate(pitch, Vector3(0.0f, 1.0f, 0.0f));
+	gViewMatrix =
+		Matrix4::rotate(yaw, Vector3(1.0f, 0.0f, 0.0f)) *
+		Matrix4::translate(Vector3(distanceX, distanceY, distanceZ)) *
+		Matrix4::rotate(pitch, Vector3(0.0f, 1.0f, 0.0f));
 }
 
 void DrawCube(GLuint texture, float sizeX = 1.0f, float sizeY = 1.0f, float sizeZ = 1.0f)
@@ -571,55 +608,134 @@ void DrawSquare(GLuint texture, float sizeX = 1.0f, float sizeY = 1.0f)
 	glDisableVertexAttribArray(2);
 }
 
+void DrawGraphicsSample()
+{
+	Matrix4 modelMatrix, mvpMatrix;
+	//====================
+	modelMatrix = Matrix4::translate(Vector3(-1.0f, 0.0f, 0.0f)) * 
+		Matrix4::rotate(0, Vector3(0.0f, 1.0f, 0.0f));
+	
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[9]); //Draw first rectangle, image based on number.
+	//====================
+	modelMatrix = Matrix4::translate(Vector3(1.0f, 0.0f, 0.0f)) * 
+		Matrix4::rotate(0, Vector3(0.0f, 1.0f, 0.0f));
+	
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[9]); //Draw second rectangle, image based on number.
+	//====================
+}
+
 void DrawSkyBox(float sizeX = 1.0f, float sizeY = 1.0f, float sizeZ = 1.0f)
 {
-	sizeX = 10.0f;
-	sizeY = 10.0f;
-	sizeZ = 10.0f;
+	Matrix4 modelMatrix, mvpMatrix;
+
+	modelMatrix = Matrix4::translate(Vector3(0.0f, sizeY, 0.0f)) * 
+		Matrix4::rotate(90, Vector3(1.0f, 0.0f, 0.0f));
+	
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[0], sizeX, sizeY); //Top texture
+
+	modelMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, -sizeZ)) * 
+		Matrix4::rotate(0, Vector3(0.0f, 0.0f, 0.0f));
+	
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[1], sizeX, sizeY); //Middle texture
+
+	modelMatrix = Matrix4::translate(Vector3(-sizeX, 0.0f, 0.0f)) * 
+		Matrix4::rotate(90, Vector3(0.0f, 1.0f, 0.0f));
+	
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[2], sizeX, sizeY); //Left texture
+
+	modelMatrix = Matrix4::translate(Vector3(sizeX, 0.0f, 0.0f)) * 
+		Matrix4::rotate(90, Vector3(0.0f, -1.0f, 0.0f));
+	
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[3], sizeX, sizeY); //Middle-right texture
+
+	modelMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, sizeZ)) * 
+		Matrix4::rotate(180, Vector3(0.0f, 1.0f, 0.0f));
+	
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[4], sizeX, sizeY); //Right texture
+
+	modelMatrix = Matrix4::translate(Vector3(0.0f, -sizeY, 0.0f)) * 
+		Matrix4::rotate(90, Vector3(1.0f, 0.0f, 0.0f));
+	
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[5], sizeX, sizeY); //Bottom texture
+}
+
+float move0 = 0.0f;
+
+float move1 = 0.0f;
+
+void DrawCubeMove(float sizeX = 1.0f, float sizeY = 1.0f, float sizeZ = 1.0f, 
+	float offsetX = 0.0f, float offsetY = 0.0f, float offsetZ = 0.0f)
+{
+	move0 += 0.05f;
+	move1 = 5.0f * sinf(move0);
+
+	offsetX = -3.0f + move1;
+	offsetY = 8.0f;
+	offsetZ = 5.0f;
+
+	sizeX = 1.0f;
+	sizeY = 1.0f;
+	sizeZ = 1.0f;
 
 	Matrix4 modelMatrix, mvpMatrix;
 
-	modelMatrix = Matrix4::translate(Vector3(0.0f, sizeY, 0.0f)) * Matrix4::rotate(90, Vector3(1.0f, 0.0f, 0.0f));
+	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY + sizeY, offsetZ)) * 
+		Matrix4::rotate(90, Vector3(1.0f, 0.0f, 0.0f));
+
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
-
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[8], sizeX, sizeY); //Top texture
+	//
+	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY, offsetZ + -sizeZ)) * 
+		Matrix4::rotate(0, Vector3(0.0f, 0.0f, 0.0f));
 
-	DrawSquare(GtextureID[0], sizeX, sizeY); //Top texture
-
-	modelMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, -sizeZ)) * Matrix4::rotate(0, Vector3(0.0f, 0.0f, 0.0f));
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
-
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[8], sizeX, sizeY); //Middle texture
+	//
+	modelMatrix = Matrix4::translate(Vector3(offsetX + -sizeX, offsetY, offsetZ)) * 
+		Matrix4::rotate(90, Vector3(0.0f, 1.0f, 0.0f));
 
-	DrawSquare(GtextureID[1], sizeX, sizeY); //Middle texture
-
-	modelMatrix = Matrix4::translate(Vector3(-sizeX, 0.0f, 0.0f)) * Matrix4::rotate(90, Vector3(0.0f, 1.0f, 0.0f));
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
-
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[8], sizeX, sizeY); //Left texture
+	//
+	modelMatrix = Matrix4::translate(Vector3(offsetX + sizeX, offsetY, offsetZ)) * 
+		Matrix4::rotate(90, Vector3(0.0f, -1.0f, 0.0f));
 
-	DrawSquare(GtextureID[2], sizeX, sizeY); //Left texture
-
-	modelMatrix = Matrix4::translate(Vector3(sizeX, 0.0f, 0.0f)) * Matrix4::rotate(90, Vector3(0.0f, -1.0f, 0.0f));
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
-
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[8], sizeX, sizeY); //Middle-right texture
+	//
+	modelMatrix = Matrix4::translate(Vector3(offsetX + 0.0f, offsetY, offsetZ + sizeZ)) * 
+		Matrix4::rotate(180, Vector3(0.0f, 1.0f, 0.0f));
 
-	DrawSquare(GtextureID[3], sizeX, sizeY); //Middle-right texture
-
-	modelMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, sizeZ)) * Matrix4::rotate(180, Vector3(0.0f, 1.0f, 0.0f));
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
-
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawSquare(GtextureID[8], sizeX, sizeY); //Right texture
+	//
+	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY + -sizeY, offsetZ)) * 
+		Matrix4::rotate(90, Vector3(1.0f, 0.0f, 0.0f));
 
-	DrawSquare(GtextureID[4], sizeX, sizeY); //Right texture
-
-	modelMatrix = Matrix4::translate(Vector3(0.0f, -sizeY, 0.0f)) * Matrix4::rotate(90, Vector3(1.0f, 0.0f, 0.0f));
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
-
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
-
-	DrawSquare(GtextureID[5], sizeX, sizeY); //Bottom texture
+	DrawSquare(GtextureID[8], sizeX, sizeY); //Bottom texture
 }
 
 // Variables For Music
@@ -656,7 +772,9 @@ void Draw(void)
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	//=============================================
-	//Draw 2 rectangles on a texture.
+	//First pass, render entire screen as texture
+	//=============================================
+
 	//Bind the framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
 
@@ -672,81 +790,148 @@ void Draw(void)
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1); //Set to no blur.
+		//Set to normal
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), -1);
 		
-		//Matrix4 modelMatrix, mvpMatrix;
-		//====================
-		//modelMatrix = Matrix4::translate(Vector3(-1.2f, 0.0f, 0.0f)) * Matrix4::rotate(0, Vector3(0.0f, 1.0f, 0.0f));
-		//mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
-		//
-		//glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
-		//
-		//DrawSquare(GtextureID[0]); //Draw first rectangle, image based on number.
-		//DrawCube(GtextureID[0]);
-		//====================
-		//modelMatrix = Matrix4::translate(Vector3(1.2f, 0.0f, 0.0f)) * Matrix4::rotate(0, Vector3(0.0f, 1.0f, 0.0f));
-		//mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
-		//
-		//glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
-		//
-		//DrawSquare(GtextureID[0]); //Draw second rectangle, image based on number.
-		//DrawCube(GtextureID[0]);
-		//====================
+		//Set to no blur.
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
 
-		DrawSkyBox();
+		DrawGraphicsSample();
+
+		DrawSkyBox(10.0f, 10.0f, 10.0f);
+
+		DrawCubeMove();
 	}
 	else
 	{
-		printf("frame buffer is not ready!\n");
+		printf("Line 796 : Frame buffer is not ready!\n");
 	}
-	//=============================================
 
 	//=============================================
-	//Blur the texture.
-	//This time, render directly to window system framebuffer.
-	
+	//Second pass, apply high pass filter on texture
 	//=============================================
-	//Blur the texture, first pass(horizontal blur)
+
+	//Bind the framebuffer.
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
 
 	//Change the render target to GtextureBlurred
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GblurredTexture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GpTexture_0, 0);
 
 	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
 	if (status == GL_FRAMEBUFFER_COMPLETE)
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+		//Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
 		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
 
-		// tell the shader to apply horizontal blurring, for details please check the "uBlurDirection" flag in the shader code
-		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 0);
+		//Set state to high pass filter;
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 0);
+
+		//Tell the shader to apply horizontal blurring, for details please check the "uBlurDirection" flag in the shader code
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
 
 		DrawSquare(GfullscreenTexture);
-		//DrawCube(GfullscreenTexture);
 	}
 	else
 	{
-		printf("frame buffer is not ready!\n");
+		printf("Line 828 : Frame buffer is not ready!\n");
 	}
-	//=============================================
 
 	//=============================================
-	//Blur the texture, second pass(vertical blur)
+	//Third pass, horizontal blur
+	//=============================================
+
 	//This time, render directly to window system framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GpTexture_1, 0);
+
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		// Clear the buffers (Clear the screen basically)
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+		// Set state to gaussian blur
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 1);
+
+		// Draw the texture that has been screen captured, apply Horizontal blurring
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 0);
+
+		DrawSquare(GpTexture_0);
+	}
+	else
+	{
+		printf("Line 859 : Framebuffer is not ready!\n");
+	}
+
+	//=============================================
+	//Fourth pass, vertical blur
+	//=============================================
+
+	//Bind the framebuffer.
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
+
+	//Change the render target to GtextureBlurred
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GpTexture_0, 0);
+
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+		//Set state to high pass filter;
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 1);
+
+		//Tell the shader to apply horizontal blurring, for details please check the "uBlurDirection" flag in the shader code
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 1);
+
+		DrawSquare(GpTexture_1);
+	}
+	else
+	{
+		printf("Line 891 : Frame buffer is not ready!\n");
+	}
+
+	//=============================================
+	//Final pass, combine all textures
+	//=============================================
+
+	// This time, render directly to Windows System Framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// Clear the buffers (Clear the screen basically)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+	// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
 
-	// draw the texture that has been horizontally blurred, and apply vertical blurring
-	glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 1);
-	
-	DrawSquare(GblurredTexture);
-	//DrawCube(GblurredTexture);
-	//=============================================
+	// Set state to normal
+	glUniform1i(glGetUniformLocation(GprogramID, "uState"), -1);
+
+	// Set to no blur
+	glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
+
+	// Draw the textures
+	glDepthMask(GL_FALSE);
+
+	DrawSquare(GfullscreenTexture);
+
+	//Using additive blending.
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	DrawSquare(GpTexture_0);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glDepthMask(GL_TRUE);
 }
 
 int main(void)
