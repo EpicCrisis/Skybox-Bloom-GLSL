@@ -743,6 +743,8 @@ float factor0 = 0.0f;
 
 const float PI = 3.142f;
 
+void ShaderPass(GLuint &tex0, GLuint &tex1, GLuint &texFullScr);
+
 void Draw(void)
 {
 	factor0 += 0.1f;
@@ -806,7 +808,48 @@ void Draw(void)
 	{
 		printf("Line 796 : Frame buffer is not ready!\n");
 	}
+	/*
+	for (int i = 0; i < 2; ++i)
+	{
+		ShaderPass(GpTexture_0, GpTexture_1, GfullscreenTexture);
+	}
+	*/
 
+	for (int i = 0; i < 3; ++i)
+	{
+		ShaderPass(GpTexture_0, GpTexture_1, GfullscreenTexture);
+
+		if (!(++i < 3))
+		{
+			break;
+		}
+
+		ShaderPass(GpTexture_0, GfullscreenTexture, GpTexture_1);
+	}
+
+	//=============================================
+	//Draw the texture
+	//=============================================
+
+	// This time, render directly to Windows System Framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// Clear the buffers (Clear the screen basically)
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+	// Set state to normal
+	glUniform1i(glGetUniformLocation(GprogramID, "uState"), -1);
+
+	// Set to no blur
+	glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
+
+	// Draw the textures
+	DrawSquare(GfullscreenTexture);
+
+	/*
 	//=============================================
 	//Second pass, apply high pass filter on texture
 	//=============================================
@@ -838,13 +881,13 @@ void Draw(void)
 	{
 		printf("Line 828 : Frame buffer is not ready!\n");
 	}
-
+	
 	//=============================================
 	//Third pass, horizontal blur
 	//=============================================
 
-	//This time, render directly to window system framebuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//Bind the framebuffer.
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GpTexture_1, 0);
 
@@ -869,7 +912,7 @@ void Draw(void)
 	{
 		printf("Line 859 : Framebuffer is not ready!\n");
 	}
-
+	
 	//=============================================
 	//Fourth pass, vertical blur
 	//=============================================
@@ -921,7 +964,7 @@ void Draw(void)
 	// Set to no blur
 	glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
 
-	// Draw the textures
+	// Draw the texturesla
 	glDepthMask(GL_FALSE);
 
 	DrawSquare(GfullscreenTexture);
@@ -932,6 +975,180 @@ void Draw(void)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glDepthMask(GL_TRUE);
+	*/
+}
+
+void ShaderPass(GLuint &tex0, GLuint &tex1, GLuint &texFullScr)
+{
+	//=============================================
+	//Second pass, apply high pass filter on texture
+	//=============================================
+
+	//Bind the framebuffer.
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
+
+	//Change the render target to GtextureBlurred
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex0, 0);
+
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+		//Set state to high pass filter;
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 0);
+
+		//Tell the shader to apply horizontal blurring, for details please check the "uBlurDirection" flag in the shader code
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
+
+		DrawSquare(texFullScr);
+	}
+	else
+	{
+		printf("Line 828 : Frame buffer is not ready!\n");
+	}
+
+	//=============================================
+	//Third pass, horizontal blur
+	//=============================================
+
+	//Bind the framebuffer.
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex1, 0);
+
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		// Clear the buffers (Clear the screen basically)
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+		// Set state to gaussian blur
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 1);
+
+		// Draw the texture that has been screen captured, apply Horizontal blurring
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 0);
+
+		DrawSquare(tex0);
+	}
+	else
+	{
+		printf("Line 859 : Framebuffer is not ready!\n");
+	}
+
+	//=============================================
+	//Fourth pass, vertical blur
+	//=============================================
+
+	//Bind the framebuffer.
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
+
+	//Change the render target to GtextureBlurred
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex0, 0);
+
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+		//Set state to high pass filter;
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 1);
+
+		//Tell the shader to apply horizontal blurring, for details please check the "uBlurDirection" flag in the shader code
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 1);
+
+		DrawSquare(tex1);
+	}
+	else
+	{
+		printf("Line 891 : Frame buffer is not ready!\n");
+	}
+
+	//=============================================
+	//Final pass, combine all textures
+	//=============================================
+
+	//Bind the framebuffer.
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
+
+	//Change the render target to GtextureBlurred
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex1, 0);
+
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+		//Set state to high pass filter;
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), -1);
+
+		//Tell the shader to apply horizontal blurring, for details please check the "uBlurDirection" flag in the shader code
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
+
+		// Draw the textures
+		glDepthMask(GL_FALSE);
+
+		DrawSquare(texFullScr);
+
+		//Using additive blending.
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+		DrawSquare(tex0);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glDepthMask(GL_TRUE);
+	}
+	else
+	{
+		printf("Line 891 : Frame buffer is not ready!\n");
+	}
+	/*
+	//=============================================
+	//First pass, render entire screen as texture
+	//=============================================
+
+	//Bind the framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
+
+	//Specify texture as color attachment
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texFullScr, 0);
+
+	//Specify depth_renderbufer as depth attachment
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, GdepthRenderbuffer);
+
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//Set to normal
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), -1);
+
+		//Set to no blur.
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
+
+		DrawSquare(tex1);
+	}
+	else
+	{
+		printf("Line 796 : Frame buffer is not ready!\n");
+	}
+	*/
 }
 
 int main(void)

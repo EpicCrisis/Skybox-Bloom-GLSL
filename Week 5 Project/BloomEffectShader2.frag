@@ -49,11 +49,11 @@ vec4 gaussianBlur(vec4 texColor, float radius, int blurDirection, float jumpPixe
 		
 		if(blurDirection == 0)
 		{
-			x += uTextureW * i;
+			x += i / uTextureW;
 		}
 		else if(blurDirection == 1)
 		{
-			y += uTextureH * i;
+			y += i / uTextureH;
 		}
 		
 		if(x < 0.0 || x > 1.0)
@@ -90,11 +90,11 @@ void main()
 	
 	if(uState == 0) 
 	{
-		gl_FragColor = highPassFilter(texColor, 0.25);
+		gl_FragColor = highPassFilter(texColor, 0.9);
 	}
 	else if(uState == 1)
 	{
-		gl_FragColor = gaussianBlur(texColor, 20.0, uBlurDirection);
+		gl_FragColor = gaussianBlur(texColor, 100.0, uBlurDirection, 4.0);
 	}
 	else
 	{
