@@ -90,7 +90,7 @@ void main()
 	
 	if(uState == 0) 
 	{
-		gl_FragColor = highPassFilter(texColor, 0.9);
+		gl_FragColor = highPassFilter(texColor, 0.95);
 	}
 	else if(uState == 1)
 	{

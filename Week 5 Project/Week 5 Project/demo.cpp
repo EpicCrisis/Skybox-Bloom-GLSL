@@ -204,6 +204,7 @@ int Init ( void )
 	loadTexture("../media/DarkRainbow.bmp", GtextureID[7]);
 	loadTexture("../media/roughrock.bmp", GtextureID[8]);
 	loadTexture("../media/graphics-card.bmp", GtextureID[9]);
+	loadTexture("../media/lava-rock.bmp", GtextureID[10]);
 
 	// Initialize FMOD
 	//InitFMOD();
@@ -308,7 +309,7 @@ int Init ( void )
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	//Initialize matrices
-	gPerspectiveMatrix = Matrix4::perspective(60.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.5f, 30.0f);
+	gPerspectiveMatrix = Matrix4::perspective(70.0f, (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.5f, 90.0f);
 	gViewMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, -2.0f));
 
 	return 1;
@@ -608,19 +609,148 @@ void DrawSquare(GLuint texture, float sizeX = 1.0f, float sizeY = 1.0f)
 	glDisableVertexAttribArray(2);
 }
 
-void DrawGraphicsSample()
+void DrawPyramid(GLuint texture, float sizeX = 1.0f, float sizeY = 1.0f, float sizeZ = 1.0f)
+{
+	GLfloat vVertices[] =
+	{
+		  //+z
+		  0.0f,   sizeY,   0.0f,
+		 -sizeX, -sizeY, sizeZ,
+		  sizeX, -sizeY, sizeZ,
+		  //-z
+		  0.0f,   sizeY,   0.0f,
+		 -sizeX, -sizeY, -sizeZ,
+		  sizeX, -sizeY, -sizeZ,
+		  //+x
+		  0.0f,   sizeY,   0.0f,
+		  sizeX, -sizeY, -sizeZ,
+		  sizeX, -sizeY,  sizeZ,
+		  //-x
+		  0.0f,   sizeY,   0.0f,
+		 -sizeX, -sizeY, -sizeZ,
+		 -sizeX, -sizeY,  sizeZ,
+		  //bottom square
+		  sizeX, -sizeY,  sizeZ,
+		 -sizeX, -sizeY,  sizeZ,
+		 -sizeX, -sizeY, -sizeZ,
+
+		  sizeX, -sizeY,  sizeZ,
+		  sizeX, -sizeY, -sizeZ,
+		 -sizeX, -sizeY, -sizeZ
+	};
+
+	GLfloat vColors[] =
+	{
+		1.0f, 0.0f, 0.0f, 1.0f,
+		0.0f, 1.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f, 1.0f,
+	};
+
+	GLfloat vTexCoords[] =
+	{
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+	};
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	// Use the program object
+	//glUseProgram(GprogramID);
+
+	// Load the vertex data
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, vColors);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, vTexCoords);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+
+	glDrawArrays(GL_TRIANGLES, 0, 18);
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
+}
+
+//void DrawPyramid(float sizeX = 1.0f, float sizeY = 1.0f, float sizeZ = 1.0f,
+//	float offsetX = 0.0f, float offsetY = 0.0f, float offsetZ = 0.0f, int textureType = 0)
+//{
+//	Matrix4 modelMatrix, mvpMatrix;
+//
+//	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY, offsetZ)) *
+//		Matrix4::rotate(90, Vector3(1.0f, 0.0f, 0.0f));
+//
+//	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+//	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+//	DrawSquare(GtextureID[textureType], sizeX, sizeY); 
+//	//-Z Triangle
+//	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY, offsetZ - sizeZ * 0.5f)) *
+//		Matrix4::rotate(45.0f, Vector3(1.0f, 0.0f, 0.0f));
+//
+//	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+//	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+//	DrawTriangle(GtextureID[textureType], sizeX, sizeY); 
+//	//+Z Triangle
+//	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY, offsetZ + sizeZ * 0.5f)) *
+//		Matrix4::rotate(180.0f, Vector3(0.0f, 1.0f, 0.0f)) *
+//		Matrix4::rotate(45.0f, Vector3(1.0f, 0.0f, 0.0f));
+//
+//	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+//	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+//	DrawTriangle(GtextureID[textureType], sizeX, sizeY);
+//	//-X Triangle
+//	modelMatrix = Matrix4::translate(Vector3(offsetX - sizeX * 0.5f, offsetY, offsetZ)) *
+//		Matrix4::rotate(90.0f, Vector3(0.0f, 1.0f, 0.0f)) *
+//		Matrix4::rotate(45.0f, Vector3(1.0f, 0.0f, 0.0f));
+//
+//	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+//	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+//	DrawTriangle(GtextureID[textureType], sizeX, sizeY);
+//	//+X Triangle
+//	modelMatrix = Matrix4::translate(Vector3(offsetX + sizeX * 0.5f, offsetY, offsetZ)) *
+//		Matrix4::rotate(270.0f, Vector3(0.0f, 1.0f, 0.0f)) *
+//		Matrix4::rotate(45.0f, Vector3(1.0f, 0.0f, 0.0f));
+//
+//	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+//	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+//	DrawTriangle(GtextureID[textureType], sizeX, sizeY);
+//}
+
+void DrawGraphicsSample(float rotation = 0.0f)
 {
 	Matrix4 modelMatrix, mvpMatrix;
 	//====================
-	modelMatrix = Matrix4::translate(Vector3(-1.0f, 0.0f, 0.0f)) * 
-		Matrix4::rotate(0, Vector3(0.0f, 1.0f, 0.0f));
+	modelMatrix = Matrix4::translate(Vector3(-1.0f, 0.0f, 0.0f)) *
+		Matrix4::rotate(rotation, Vector3(0.0f, 1.0f, 0.0f));
 	
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
 	DrawSquare(GtextureID[9]); //Draw first rectangle, image based on number.
 	//====================
-	modelMatrix = Matrix4::translate(Vector3(1.0f, 0.0f, 0.0f)) * 
-		Matrix4::rotate(0, Vector3(0.0f, 1.0f, 0.0f));
+	modelMatrix = Matrix4::translate(Vector3(1.0f, 0.0f, 0.0f)) *
+		Matrix4::rotate(-rotation, Vector3(0.0f, 1.0f, 0.0f));
 	
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
@@ -675,24 +805,9 @@ void DrawSkyBox(float sizeX = 1.0f, float sizeY = 1.0f, float sizeZ = 1.0f)
 	DrawSquare(GtextureID[5], sizeX, sizeY); //Bottom texture
 }
 
-float move0 = 0.0f;
-
-float move1 = 0.0f;
-
-void DrawCubeMove(float sizeX = 1.0f, float sizeY = 1.0f, float sizeZ = 1.0f, 
-	float offsetX = 0.0f, float offsetY = 0.0f, float offsetZ = 0.0f)
+void DrawCubeMove(float sizeX = 1.0f, float sizeY = 1.0f, float sizeZ = 1.0f,
+	float offsetX = 0.0f, float offsetY = 0.0f, float offsetZ = 0.0f, int textureType = 0)
 {
-	move0 += 0.05f;
-	move1 = 5.0f * sinf(move0);
-
-	offsetX = -3.0f + move1;
-	offsetY = 8.0f;
-	offsetZ = 5.0f;
-
-	sizeX = 1.0f;
-	sizeY = 1.0f;
-	sizeZ = 1.0f;
-
 	Matrix4 modelMatrix, mvpMatrix;
 
 	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY + sizeY, offsetZ)) * 
@@ -700,42 +815,42 @@ void DrawCubeMove(float sizeX = 1.0f, float sizeY = 1.0f, float sizeZ = 1.0f,
 
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
-	DrawSquare(GtextureID[8], sizeX, sizeY); //Top texture
+	DrawSquare(GtextureID[textureType], sizeX, sizeY); //Top texture
 	//
-	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY, offsetZ + -sizeZ)) * 
+	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY, offsetZ - sizeZ)) * 
 		Matrix4::rotate(0, Vector3(0.0f, 0.0f, 0.0f));
 
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
-	DrawSquare(GtextureID[8], sizeX, sizeY); //Middle texture
+	DrawSquare(GtextureID[textureType], sizeX, sizeY); //Middle texture
 	//
-	modelMatrix = Matrix4::translate(Vector3(offsetX + -sizeX, offsetY, offsetZ)) * 
+	modelMatrix = Matrix4::translate(Vector3(offsetX - sizeX, offsetY, offsetZ)) * 
 		Matrix4::rotate(90, Vector3(0.0f, 1.0f, 0.0f));
 
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
-	DrawSquare(GtextureID[8], sizeX, sizeY); //Left texture
+	DrawSquare(GtextureID[textureType], sizeX, sizeY); //Left texture
 	//
 	modelMatrix = Matrix4::translate(Vector3(offsetX + sizeX, offsetY, offsetZ)) * 
 		Matrix4::rotate(90, Vector3(0.0f, -1.0f, 0.0f));
 
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
-	DrawSquare(GtextureID[8], sizeX, sizeY); //Middle-right texture
+	DrawSquare(GtextureID[textureType], sizeX, sizeY); //Middle-right texture
 	//
-	modelMatrix = Matrix4::translate(Vector3(offsetX + 0.0f, offsetY, offsetZ + sizeZ)) * 
+	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY, offsetZ + sizeZ)) * 
 		Matrix4::rotate(180, Vector3(0.0f, 1.0f, 0.0f));
 
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
-	DrawSquare(GtextureID[8], sizeX, sizeY); //Right texture
+	DrawSquare(GtextureID[textureType], sizeX, sizeY); //Right texture
 	//
-	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY + -sizeY, offsetZ)) * 
+	modelMatrix = Matrix4::translate(Vector3(offsetX, offsetY - sizeY, offsetZ)) * 
 		Matrix4::rotate(90, Vector3(1.0f, 0.0f, 0.0f));
 
 	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
-	DrawSquare(GtextureID[8], sizeX, sizeY); //Bottom texture
+	DrawSquare(GtextureID[textureType], sizeX, sizeY); //Bottom texture
 }
 
 // Variables For Music
@@ -743,11 +858,17 @@ float factor0 = 0.0f;
 
 const float PI = 3.142f;
 
+float move0 = 0.0f;
+float move1 = 0.0f;
+
 void ShaderPass(GLuint &tex0, GLuint &tex1, GLuint &texFullScr);
 
 void Draw(void)
 {
 	factor0 += 0.1f;
+
+	move0 += 0.05f;
+	move1 = 5.0f * sinf(move0);
 
 	GLint factor0Loc = glGetUniformLocation(GprogramID, "Factor0");
 	if (factor0Loc != -1)
@@ -798,11 +919,23 @@ void Draw(void)
 		//Set to no blur.
 		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
 
-		DrawGraphicsSample();
+		DrawGraphicsSample(move0 * 5.0f);
 
-		DrawSkyBox(10.0f, 10.0f, 10.0f);
+		DrawSkyBox(20.0f, 20.0f, 20.0f);
 
-		DrawCubeMove();
+		DrawCubeMove(1.0f, 1.0f, 1.0f, -3.0f + move1 , 8.0f, 5.0f, 8);
+
+		DrawCubeMove(0.5f, 0.5f, 0.5f, 0.0f, 0.0f + move1 * 0.25, -5.0f, 10);
+
+		DrawCubeMove(0.75f, 0.75f, 0.75f, 5.0f, 0.0f, 0.0f + (5.0f * sinf(move1 * 0.5)), 6);
+
+		Matrix4 modelMatrix, mvpMatrix;
+
+		modelMatrix = Matrix4::translate(Vector3(5.0f, 5.0f + move1, 0.0f));
+
+		mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+		DrawPyramid(GtextureID[6], 1.0f, 1.0f, 1.0f);
 	}
 	else
 	{
